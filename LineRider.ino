@@ -1,5 +1,5 @@
+#include <A4990MotorShield.h>
 #include <PID_v1.h>
-#include <DRV8835MotorShield.h>
 #include <QTRSensors.h>
 #include <Servo.h>
 
@@ -18,7 +18,7 @@
 #define RIGHT_MOTOR                   1
 
 // motor speed constants
-#define MIN_SPEED                     0
+#define MIN_SPEED                  -400
 #define MAX_SPEED                   400
 
 
@@ -37,25 +37,19 @@
 
 /* pins */
 
-// motor driver control pins
-#define MOTOR_DRIVER_CTRL_PIN_1       7
-#define MOTOR_DRIVER_CTRL_PIN_2       8
-#define MOTOR_DRIVER_CTRL_PIN_3       9
-#define MOTOR_DRIVER_CTRL_PIN_4      10
-
 #define SENSOR_EMITTER_PIN            2 // sensor emitter control pin
 
 // sensor input pins
-#define SENSOR_PIN_1                  3
-#define SENSOR_PIN_2                  4
-#define SENSOR_PIN_3                  5
-#define SENSOR_PIN_4                  6
-#define SENSOR_PIN_5                 A0
-#define SENSOR_PIN_6                 A1
-#define SENSOR_PIN_7                 A2
-#define SENSOR_PIN_8                 A3
+#define SENSOR_PIN_1                 A0
+#define SENSOR_PIN_2                 A1
+#define SENSOR_PIN_3                 A2
+#define SENSOR_PIN_4                 A3
+#define SENSOR_PIN_5                 A4
+#define SENSOR_PIN_6                 A5
+#define SENSOR_PIN_7                 A6
+#define SENSOR_PIN_8                 A7
 
-#define FAN_CONTROL_PIN              11 // ducted fan speed control pin
+#define FAN_CONTROL_PIN              12 // ducted fan speed control pin
 
 // constant array for storing sensor pins for constructor of sensor library
 const uint8_t sensorPins[SENSOR_COUNT] = { 
@@ -79,7 +73,7 @@ Servo fan;
 QTRSensors sensor;
 
 // the library for controlling the motors
-DRV8835MotorShield motors;
+A4990MotorShield motors;
 
 double setpoint;
 double input;
@@ -98,17 +92,14 @@ void setup() {
   prelim();
   setupPID();
   delay(1000);
+
+  Serial.println("Starting!");
 }
 
 void doPinModes() {
   // in order of use, sets pin modes
   pinMode(LED_BUILTIN, OUTPUT);
   
-  pinMode(MOTOR_DRIVER_CTRL_PIN_1, OUTPUT);
-  pinMode(MOTOR_DRIVER_CTRL_PIN_2, OUTPUT);
-  pinMode(MOTOR_DRIVER_CTRL_PIN_3, OUTPUT);
-  pinMode(MOTOR_DRIVER_CTRL_PIN_4, OUTPUT);
-
   pinMode(SENSOR_EMITTER_PIN, OUTPUT);
   
   for(uint8_t i = 0; i < SENSOR_COUNT; pinMode(sensorPins[i++], INPUT)); // in one line, sets all sensorPins to input
@@ -136,22 +127,27 @@ void callibrateSensor() {
   int angleSpeed = 1;
   bool turnCW = true;
 
+  int s = 127;
+  int l = 4;
+
+  Serial.println("Callibrating sensor...");
+
   // one call to callibrate() takes ~25 ms to complete
-  for(uint16_t i = 0; i < CALLIBRATE_TIME / 25; i++) {
+  for(uint16_t i = 0; i < CALLIBRATE_TIME / 40; i++) {
     sensor.calibrate();
     
     if(turnCW) {
-      turnInPlace(255);
+      turnInPlace(s);
       angleTracker += angleSpeed;
       
-      if(angleTracker >= 50) {
+      if(angleTracker >= l) {
         turnCW = false;
       }
     } else {
-      turnInPlace(-255);
+      turnInPlace(-s);
       angleTracker -= angleSpeed;
       
-      if(angleTracker <= -50) {
+      if(angleTracker <= -l) {
         turnCW = true;
       }
     }
@@ -167,6 +163,8 @@ void callibrateSensor() {
       angleTracker += angleSpeed;
     }
   }
+
+  Serial.println("Sensor callibration complete.");
   
 //  findLine(angleTracker / abs(angleTracker));
 }
@@ -192,16 +190,22 @@ void findLine(const int initialTurnDir) {
 void setupFan() {
   // todo: write code that sets fan high, waits, then sets it low, then waits and then revs to test before setting low
   fan.attach(FAN_CONTROL_PIN);
-  
+
+  Serial.println("Callibrating fan...");
+
+  Serial.println("Setting fan high");
   setFan(180); // controller wants max fan speed first
   delay(2000); // should wait enough for beeps
-  
+
+  Serial.println("Setting fan low");
   setFan(0); // next, controller wants minimum speed
   delay(2000); // wait for beeps again
-  
+
+  Serial.println("Revving fan");
   setFan(50); // rev fan to test it
   delay(1000); // wait a little bit for fan to rev
-  
+
+  Serial.println("Fan callibration complete.");
   fan.write(0); // let fan rest for further callibration
 }
 
@@ -214,16 +218,21 @@ void setupPID() {
 }
 
 void loop() {
-  setFan(180);
-  control();
+//  setFan(180);
+//  control();
+  motors.setM2Speed(200);
 }
 
 void control() {
-  input = sensor.readLineBlack(sensorValues);
+//  input = sensor.readLineBlack(sensorValues);
   
-  controller.Compute();
+//  controller.Compute();
+
+//  output = 0;
   
-  setMotorsDiff(output, MAX_SPEED);
+//  setMotorsDiff(output, MAX_SPEED);
+//  setMotor(LEFT_MOTOR, MAX_SPEED);
+  motors.setM1Speed(200);
 }
 
 void setMotorsDiff(const int diff, int vel) {
