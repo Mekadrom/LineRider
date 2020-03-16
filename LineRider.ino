@@ -143,12 +143,10 @@ void callibrateFan() {
 
 //  Serial.println(output);
   
-//  setMotorsDiff(vel, output);
-//  setMotorsDiff(GOAL_SPEED, output);
-  setMotorsD(GOAL_SPEED, output);
+  setMotorsDiff(GOAL_SPEED, output);
 }
 
-void setMotorsD(const int goalSpeed, int diff) {
+void setMotorsDiff(const int goalSpeed, int diff) {
   int leftSpeed = goalSpeed;
   int rightSpeed = goalSpeed;
   
@@ -177,39 +175,6 @@ void setMotorsD(const int goalSpeed, int diff) {
 //    if(rightSpeed > MAX_SPEED) rightSpeed = MAX_SPEED;
 //    leftSpeed = 0;
 //  }
-
-//  motors.setSpeeds(rightSpeed * FLIP_R, leftSpeed * FLIP_L); // might need to switch these; do tests to confirm placement
-  motors.setSpeeds(leftSpeed * FLIP_L ,rightSpeed * FLIP_R); // might need to switch these; do tests to confirm placement
-}
-
-void setMotorsDiff(const int goalSpeed, int diff) {
-  diff *= 2.0;
-  
-  int rightSpeed = goalSpeed;// - (diff / 2.0);
-  int leftSpeed = goalSpeed + (diff / 2.0);
-  
-//  if(diff > 0) {
-//    rightSpeed = GOAL_SPEED;
-//    leftSpeed = rightSpeed - diff;
-//  } else if(diff < 0) {
-//    leftSpeed = GOAL_SPEED;
-//    rightSpeed = leftSpeed - diff;
-//  } else {
-//    leftSpeed = GOAL_SPEED;
-//    rightSpeed = GOAL_SPEED;
-//  }
-
-  if(rightSpeed > MAX_SPEED) {
-    leftSpeed -= (MAX_SPEED - rightSpeed);
-    rightSpeed = MAX_SPEED;
-  }
-  if(leftSpeed > MAX_SPEED) {
-    rightSpeed -= (MAX_SPEED - leftSpeed);
-    leftSpeed = MAX_SPEED;
-  }
-  
-  if(rightSpeed < 0) rightSpeed = 0;
-  if(leftSpeed < 0) leftSpeed = 0;
 
 //  motors.setSpeeds(rightSpeed * FLIP_R, leftSpeed * FLIP_L); // might need to switch these; do tests to confirm placement
   motors.setSpeeds(leftSpeed * FLIP_L ,rightSpeed * FLIP_R); // might need to switch these; do tests to confirm placement
