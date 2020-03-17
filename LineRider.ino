@@ -4,39 +4,27 @@
 
 /* constants */
 
-// motor speed offsets (to account for any slight difference in speed when going at max speed)
-#define LEFT_MOTOR_STATIC_OFFSET        0
-#define RIGHT_MOTOR_STATIC_OFFSET       0
-
-#define FLIP_L                          1
-#define FLIP_R                          1
-
 #define SETPOINT                     2500//3500
 
-// pid constants (200 max speed)
+// pid constants
 
-#define GOAL_SPEED                     75
-#define MAX_SPEED                     125
+#define GOAL_SPEED                    175
 
-#define Kp                        0.100000
-#define Ki                        0.000000
-#define Kd                        0.000000
+#define Kp                        0.06900
+#define Ki                        0.00000
+#define Kd                        2.00000
 
-// motor speed offsets and multipliers (to account for any slight difference in speed when going at max speed or wiring flips)
+#define SENSOR_COUNT                    6     // number of sensors used
 
-#define SENSOR_COUNT                  6     // number of sensors used
-
-#define EMITTER_PIN                   2 // sensor emitter control pin
+#define EMITTER_PIN                     2 // sensor emitter control pin
 
 // sensor input pins
-#define SENSOR_PIN_1                 A0
-#define SENSOR_PIN_2                 A1
-#define SENSOR_PIN_3                 A2
-#define SENSOR_PIN_4                 A3
-#define SENSOR_PIN_5                 A4
-#define SENSOR_PIN_6                 A5
-#define SENSOR_PIN_7                  4
-#define SENSOR_PIN_8                  5
+#define SENSOR_PIN_1                   A0
+#define SENSOR_PIN_2                   A1
+#define SENSOR_PIN_3                   A2
+#define SENSOR_PIN_4                   A3
+#define SENSOR_PIN_5                   A4
+#define SENSOR_PIN_6                   A5
 
 #define FAN_CONTROL_PIN               3 // ducted fan speed control pin (pwm)
 
@@ -48,8 +36,6 @@ const uint8_t sensorPins[SENSOR_COUNT] = {
                                            SENSOR_PIN_4,
                                            SENSOR_PIN_5,
                                            SENSOR_PIN_6
-//                                           SENSOR_PIN_7,
-//                                           SENSOR_PIN_8 
                                          };
 
 // array for storing input values from sensor
@@ -66,12 +52,10 @@ int lastError;
 Servo fan;
 
 void setup() {
-  Serial.begin(9600);
-  
   setupPinModes();
 
-  doCallibration();
-  
+  calibration();
+
   motors.setSpeeds(0, 0);
   delay(2000); // wait two seconds for human to center manually
 
@@ -89,7 +73,7 @@ void setupPinModes() {
   pinMode(10, OUTPUT);
 }
 
-void doCallibration() {
+void calibration() {
   digitalWrite(LED_BUILTIN, HIGH);
   setupSensor();
 //  callibrateFan();
@@ -133,51 +117,17 @@ void callibrateFan() {
   fan.write(0); // let fan rest for further callibration
 }
 
- void loop() {
-  // 3500 is offset for line sensor input
+void loop() {
   int error = sensor.readLineBlack(sensorValues) - SETPOINT;
 
-  double output = (Kp * (double)error) + (Kd * ((double)error - (double)lastError));
+  double adjustment = (Kp * (double)error) + (Kd * ((double)error - (double)lastError));
 
   lastError = error;
 
-//  Serial.println(output);
-  
-  setMotorsDiff(GOAL_SPEED, output);
-}
+  int leftSpeed = constrain(GOAL_SPEED + adjustment, 0, GOAL_SPEED);
+  int rightSpeed = constrain(GOAL_SPEED - adjustment, 0, GOAL_SPEED);
 
-void setMotorsDiff(const int goalSpeed, int diff) {
-  int leftSpeed = goalSpeed;
-  int rightSpeed = goalSpeed;
-  
-  if(diff < 0) {
-    rightSpeed = goalSpeed + abs(diff);
-  } else if(diff > 0) {
-    leftSpeed = goalSpeed + abs(diff);
-  }
-
-  if(rightSpeed > MAX_SPEED) {
-    leftSpeed -= (MAX_SPEED - rightSpeed);
-    rightSpeed = MAX_SPEED;
-  }
-  if(leftSpeed > MAX_SPEED) {
-    rightSpeed -= (MAX_SPEED - leftSpeed);
-    leftSpeed = MAX_SPEED;
-  }
-  
-//  if(rightSpeed < 0){
-//    leftSpeed += rightSpeed;
-//    if(leftSpeed > MAX_SPEED) leftSpeed = MAX_SPEED;
-//    rightSpeed = 0;
-//  }
-//  if(leftSpeed < 0){
-//    rightSpeed += leftSpeed;
-//    if(rightSpeed > MAX_SPEED) rightSpeed = MAX_SPEED;
-//    leftSpeed = 0;
-//  }
-
-//  motors.setSpeeds(rightSpeed * FLIP_R, leftSpeed * FLIP_L); // might need to switch these; do tests to confirm placement
-  motors.setSpeeds(leftSpeed * FLIP_L ,rightSpeed * FLIP_R); // might need to switch these; do tests to confirm placement
+  motors.setSpeeds(leftSpeed, rightSpeed);
 }
 
 void setFan(const int fanSpeed) {
